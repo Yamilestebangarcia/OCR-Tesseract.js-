@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="file" id="file" />
+
+    <p id="baseimponible"></p>
+
+    <p id="cif"></p>
+    <script type="module">
+      const $base = document.getElementById("baseimponible");
+      const $cif = document.getElementById("cif");
+      import Tesseract from "https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/+esm";
+
+      document.addEventListener("change", createFile);
+
+      async function createFile(e) {
+        if (e.target.value != "" && e.target.id === "file") {
+          const inputFile = e.target.files[0];
+          const file = new File([inputFile], inputFile.name, {
+            type: inputFile.type,
+          });
+          recognizeText(file);
+        }
+      }
+
+      //"https://www.datocms-assets.com/17507/1620727177-factura-definicion3.png?fit=max&fm=webp&q=60&w=736"
+      function recognizeText(file) {
+        Tesseract.recognize(
+          file,
+          "spa" //eng
+        ).then(({ data: { text } }) => {
+          analizeText(text);
+        });
+      }
+
+      function analizeText(text) {
+        text = text.toLowerCase();
+
+        const subTotal = getSubtotal(text);
+        $base.textContent = "base Imponible: " + subTotal;
+        console.log(subTotal);
+        const CIF = getCIF(text);
+        $cif.textContent = "CIF: " + CIF;
+        console.log(CIF);
+      }
+
+      function getSubtotal(text) {
+        let positionSub = -1;
+        if (text.search("subtotal") !== -1) {
+          positionSub = text.search("subtotal");
+          positionSub = positionSub + 8;
+        }
+
+        if (text.search("base imponible") !== -1) {
+          positionSub = text.search("base imponible");
+          positionSub = positionSub + 14;
+        }
+
+        if (text.search("baseimponible") !== -1) {
+          positionSub = text.search("baseimponible");
+
+          positionSub = positionSub + 13;
+        }
+
+        if (positionSub === -1) {
+          return;
+        }
+
+        const textcort = text.substring(positionSub, text.lenght);
+
+        const positionEndSub = textcort.search("\n");
+
+        const textSub = text.substring(
+          positionSub,
+          positionSub + positionEndSub
+        );
+        let valueSub = "";
+        for (let index = 0; index < textSub.length; index++) {
+          const regex = new RegExp("[0-9\.\,]");
+          if (regex.test(textSub[index])) {
+            valueSub += textSub[index];
+          }
+        }
+        return valueSub;
+      }
+
+      function getCIF(text) {
+        let positionSub = -1;
+        if (text.search("cif") !== -1) {
+          positionSub = positionSub + 3;
+        }
+        if (text.search("nif") !== -1) {
+          positionSub = text.search("nif");
+          positionSub = positionSub + 3;
+        }
+
+        if (text.search("n.i.f") !== -1) {
+          positionSub = text.search("n.i.f");
+          positionSub = positionSub + 5;
+        }
+        if (text.search("c.i.f") !== -1) {
+          positionSub = text.search("c.i.f");
+          positionSub = positionSub + 5;
+        }
+        if (text.search("c.if") !== -1) {
+          positionSub = text.search("c.if");
+          positionSub = positionSub + 4;
+        }
+        if (text.search("n.if") !== -1) {
+          positionSub = text.search("n.if");
+          positionSub = positionSub + 4;
+        }
+        if (text.search("ci.f") !== -1) {
+          positionSub = text.search("ci.f");
+          positionSub = positionSub + 4;
+        }
+        if (text.search("ni.f") !== -1) {
+          positionSub = text.search("ni.f");
+          positionSub = positionSub + 4;
+        }
+
+        if (text.search("nif/cif") !== -1 || text.search("cif/nif") !== -1) {
+          if (text.search("nif/cif") !== -1) {
+            positionSub = text.search("nif/cif");
+          } else {
+            positionSub = text.search("cif/nif");
+          }
+
+          positionSub = positionSub + 7;
+        }
+
+        if (positionSub === -1) {
+          return;
+        }
+
+        const textcort = text.substring(positionSub, text.lenght);
+
+        const positionEndSub = textcort.search("\n");
+        const textSub = text.substring(
+          positionSub,
+          positionSub + positionEndSub
+        );
+        let cif = "";
+        let i = 0; //9 digitos
+        for (let index = 0; index < textSub.length; index++) {
+          const regex = new RegExp("[0-9a-z]");
+          if (regex.test(textSub[index])) {
+            cif += textSub[index];
+            if (i === 8) {
+              index = textSub.length;
+            }
+            i++;
+          }
+        }
+        return cif;
+      }
+    </script>
+
+
+  </body>
+</html>
